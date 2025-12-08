@@ -1,2 +1,2 @@
 <?php
- Phpinfo() ;
+ echo "zizi";
