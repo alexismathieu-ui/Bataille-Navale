@@ -28,3 +28,4 @@ session_destroy();
 // Retour à l'accueil
 header("Location: ../index.php");
 exit;
+

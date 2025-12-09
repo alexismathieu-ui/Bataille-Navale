@@ -26,11 +26,17 @@ h1, h2 {
 }
 
 .grid {
-    margin: 20px auto;
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(10, 40px);
-    gap: 4px;
+    gap: 5px;
+
+    display: flex;
+    flex-wrap: wrap;
+    width: 420px; /* 10 cases + espaces */
+    justify-content: center;
+    margin: 40px 700px  ;
 }
+
 
 .cell button {
     width: 40px;
@@ -50,4 +56,12 @@ h1, h2 {
 
 .cell.miss button {
     background: #1e90ff;
+}
+
+.reset {
+    background: #8b0000 !important;
+}
+
+.reset:hover {
+    background: #b30000 !important;
 }

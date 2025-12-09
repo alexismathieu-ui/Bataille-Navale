@@ -16,10 +16,26 @@ $enemyFile = ($role === "Joueur 1")
 $enemyGrid = json_decode(file_get_contents($enemyFile), true);
 
 // On charge les tirs
-$coups = json_decode(file_get_contents("../data/coups.json"), true);
+$coupsFile = ($role === "Joueur 1")
+    ? "../data/coups_j1.json"
+    : "../data/coups_j2.json";
 
-$tour = $coups["tour"];          // Joueur 1 ou Joueur 2
-$cases = $coups["cases"];        // 10x10 tirés (0 = pas tiré, 1 = raté, 2 = touché)
+$coups = json_decode(file_get_contents($coupsFile), true);
+
+
+$tourData = json_decode(file_get_contents("../data/tour.json"), true);
+$tour = $tourData["tour"];
+
+$cases = $coups["cases"];       // 10x10 tirés (0 = pas tiré, 1 = raté, 2 = touché)
+
+// Vérifier si la partie est gagnée
+$etat = json_decode(file_get_contents("etat.php"), true);
+
+if (!empty($etat["gagnant"])) {
+    header("Location: win.php?winner=" . $etat["gagnant"]);
+    exit;
+}
+
 
 // Message "c'est ton tour" ou "pas ton tour"
 $estMonTour = ($tour === $role);
@@ -31,9 +47,37 @@ $estMonTour = ($tour === $role);
     <title>Bataille Navale - Tir</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
+<script>
+// Vérifie l'état du jeu toutes les 1 seconde
+setInterval(() => {
+        fetch("etat.php")
+            .then(r => r.json())
+            .then(data => {
+
+                // Redirection en cas de victoire
+                if (data.gagnant) {
+                    window.location.href = "win.php?winner=" + data.gagnant;
+                    return;
+                }
+
+                // Vérifier si le tour a changé
+                if (!data.a_toi_de_jouer) {
+                    // Pas ton tour → ne rien faire
+                    return;
+                }
+
+                // Si c'est ton tour, recharger la page
+                // pour afficher la grille mise à jour
+                location.reload();
+
+            });
+    }, 1000); // toutes les 1 seconde
+</script>
+
 <body>
 
 <h1>Bataille Navale ⚓</h1>
+<a class="btn reset" href="reset.php">🏳️ Abandon / Recommencer</a>
 <h2><?= $role ?> —
     <?= $estMonTour ? "🎯 À vous de jouer" : "⏳ Tour adverse" ?>
 </h2>

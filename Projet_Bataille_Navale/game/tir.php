@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// Sécurité
+// Sécurité : joueur non connecté
 if (!isset($_SESSION["role"])) {
     header("Location: ../index.php");
     exit;
@@ -9,19 +9,29 @@ if (!isset($_SESSION["role"])) {
 
 $role = $_SESSION["role"];
 
-// Coordonnées envoyées depuis grille.php
+// Récupérer coordonnées envoyées
 $row = intval($_POST["row"]);
 $col = intval($_POST["col"]);
 
-// Charger les tirs existants
-$coupsFile = "../data/coups.json";
-$coups = json_decode(file_get_contents($coupsFile), true);
+// 1) LIRE LE TOUR GLOBAL
 
-// Vérifier si c'est le tour du joueur
-if ($coups["tour"] !== $role) {
+$tourFile = "../data/tour.json";
+$tourData = json_decode(file_get_contents($tourFile), true);
+
+if ($tourData["tour"] !== $role) {
+    // Pas ton tour → retour
     header("Location: grille.php");
     exit;
 }
+
+
+// 2) Sélectionner la grille de tirs du joueur
+
+$coupsFile = ($role === "Joueur 1")
+    ? "../data/coups_j1.json"
+    : "../data/coups_j2.json";
+
+$coups = json_decode(file_get_contents($coupsFile), true);
 
 // Case déjà tirée ?
 if ($coups["cases"][$row][$col] !== 0) {
@@ -29,28 +39,31 @@ if ($coups["cases"][$row][$col] !== 0) {
     exit;
 }
 
-// Charger la grille de l'adversaire
+
+// 3) Charger la grille de l'adversaire
+
 $enemyFile = ($role === "Joueur 1")
     ? "../data/grille_j2.json"
     : "../data/grille_j1.json";
 
 $enemyGrid = json_decode(file_get_contents($enemyFile), true);
 
-// Vérifier si touché ou raté
+// Touché ?
 if ($enemyGrid[$row][$col] > 0) {
-    // Touché !
-    $coups["cases"][$row][$col] = 2;
+    $coups["cases"][$row][$col] = 2; // Touché
 } else {
-    // Raté
-    $coups["cases"][$row][$col] = 1;
+    $coups["cases"][$row][$col] = 1; // Raté
 }
 
-// Changer de joueur
-$coups["tour"] = ($role === "Joueur 1") ? "Joueur 2" : "Joueur 1";
-
-// Sauvegarder
+// Sauvegarde des tirs
 file_put_contents($coupsFile, json_encode($coups));
 
-// Retour grille
+
+// 4) CHANGER LE TOUR (GLOBAL)
+
+$tourData["tour"] = ($role === "Joueur 1") ? "Joueur 2" : "Joueur 1";
+file_put_contents($tourFile, json_encode($tourData));
+
+// Retour à la grille
 header("Location: grille.php");
 exit;

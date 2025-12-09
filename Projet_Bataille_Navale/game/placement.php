@@ -8,52 +8,116 @@ if (!isset($_SESSION["role"])) {
 
 $role = $_SESSION["role"];
 
-// Sélectionner la grille du joueur
-$file = ($role === "Joueur 1") 
-    ? "../data/grille_j1.json" 
+$file = ($role === "Joueur 1")
+    ? "../data/grille_j1.json"
     : "../data/grille_j2.json";
 
 $grille = json_decode(file_get_contents($file), true);
 
-// Définition des bateaux : id => taille
-$listeBateaux = [
+$bateaux = [
     2 => 2,
     3 => 3,
     4 => 4,
     5 => 5
 ];
 
-// Initialisation de la progression si pas encore faite
 if (!isset($_SESSION["current_ship"])) {
-    $_SESSION["current_ship"] = 2;   // commence par bateau ID 2
-    $_SESSION["ship_cells"] = [];    // cases sélectionnées pour ce bateau
+    $_SESSION["current_ship"] = 2;
+    $_SESSION["ship_cells"] = [];
+    $_SESSION["orientation"] = null;
 }
 
-$currentShip = $_SESSION["current_ship"];
+$ship = $_SESSION["current_ship"];
+$taille = $bateaux[$ship];
+$termine = ($ship > 5);
 
-// Si tous les bateaux sont placés → fin
-$placementTermine = ($currentShip > 5);
-
-// Clic sur une case ?
-if (isset($_POST["row"]) && isset($_POST["col"]) && !$placementTermine) {
+// ----------------------------
+// GESTION DU CLIC
+// ----------------------------
+if (isset($_POST["row"], $_POST["col"]) && !$termine) {
 
     $r = intval($_POST["row"]);
     $c = intval($_POST["col"]);
 
-    // Si la case est vide, on peut la prendre
-    if ($grille[$r][$c] === 0) {
-        $grille[$r][$c] = $currentShip;
+    // Case déjà occupée
+    if ($grille[$r][$c] !== 0) {
+        header("Location: placement.php");
+        exit;
+    }
+
+    $cells = $_SESSION["ship_cells"];
+
+    // 1️⃣ Première case → acceptée
+    if (count($cells) === 0) {
+        $grille[$r][$c] = $ship;
         $_SESSION["ship_cells"][] = [$r, $c];
     }
 
-    // Si on a placé autant de cases que la taille du bateau
-    if (count($_SESSION["ship_cells"]) == $listeBateaux[$currentShip]) {
-        $_SESSION["current_ship"]++;   // Passer au bateau suivant
-        $_SESSION["ship_cells"] = [];  // Réinitialiser les cases
+    // 2️⃣ Deuxième case → détermine orientation
+    elseif (count($cells) === 1) {
+
+        list($r0, $c0) = $cells[0];
+
+        if ($r === $r0 && abs($c - $c0) === 1) {
+            $_SESSION["orientation"] = "H";
+        }
+        elseif ($c === $c0 && abs($r - $r0) === 1) {
+            $_SESSION["orientation"] = "V";
+        }
+        else {
+            header("Location: placement.php");
+            exit;
+        }
+
+        $grille[$r][$c] = $ship;
+        $_SESSION["ship_cells"][] = [$r, $c];
     }
 
-    // Sauvegarde
+    // 3️⃣ Cases suivantes → doivent prolonger une extrémité
+    else {
+        $orientation = $_SESSION["orientation"];
+
+        $rows = array_column($cells, 0);
+        $cols = array_column($cells, 1);
+
+        $minR = min($rows);
+        $maxR = max($rows);
+        $minC = min($cols);
+        $maxC = max($cols);
+
+        $ok = false;
+
+        if ($orientation === "H") {
+            // même ligne & à gauche ou droite
+            if ($r === $rows[0] && ($c === $minC - 1 || $c === $maxC + 1)) {
+                $ok = true;
+            }
+        } else {
+            // même colonne & en haut ou bas
+            if ($c === $cols[0] && ($r === $minR - 1 || $r === $maxR + 1)) {
+                $ok = true;
+            }
+        }
+
+        if (!$ok) {
+            header("Location: placement.php");
+            exit;
+        }
+
+        $grille[$r][$c] = $ship;
+        $_SESSION["ship_cells"][] = [$r, $c];
+    }
+
+    // 4️⃣ Bateau complet → suivant
+    if (count($_SESSION["ship_cells"]) === $taille) {
+        $_SESSION["current_ship"]++;
+        $_SESSION["ship_cells"] = [];
+        $_SESSION["orientation"] = null;
+    }
+
     file_put_contents($file, json_encode($grille));
+    header("Location: placement.php");
+    exit;
 }
 
 ?>
@@ -64,15 +128,30 @@ if (isset($_POST["row"]) && isset($_POST["col"]) && !$placementTermine) {
     <title>Placement des bateaux</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
+<script>
+setInterval(() => {
+    fetch("etat.php")
+        .then(r => r.json())
+        .then(data => {
+
+            // Si le placement est terminé, on va à la grille
+            if (<?= json_encode($placementTermine) ?>) {
+                window.location.href = "grille.php";
+            }
+        });
+}, 1000);
+</script>
+
 <body>
 
 <h1><?= $role ?> - Placement des bateaux</h1>
+<a class="btn reset" href="reset.php">🏳️ Abandon / Recommencer</a>
 
-<?php if (!$placementTermine): ?>
-    <h2>Bateau à placer : ID <?= $currentShip ?> — Taille <?= $listeBateaux[$currentShip] ?></h2>
-    <p>Cliquez sur <?= $listeBateaux[$currentShip] ?> cases pour poser ce bateau.</p>
+<?php if (!$termine): ?>
+    <h2>Bateau ID <?= $ship ?> — Taille <?= $taille ?></h2>
+    <p>Cliquez sur <?= $taille ?> cases alignées pour poser ce bateau.</p>
 <?php else: ?>
-    <h2>✔ Tous les bateaux sont placés !</h2>
+    <h2>✔ Tous les bateaux placés !</h2>
     <a class="btn" href="grille.php">➡ Commencer la bataille</a>
 <?php endif; ?>
 
@@ -81,9 +160,8 @@ if (isset($_POST["row"]) && isset($_POST["col"]) && !$placementTermine) {
 for ($i = 0; $i < 10; $i++) {
     for ($j = 0; $j < 10; $j++) {
 
-        $value = $grille[$i][$j];
-
-        $classe = ($value > 0) ? "placed" : "";
+        $v = $grille[$i][$j];
+        $classe = ($v > 0) ? "placed" : "";
 
         echo "
         <form method='POST' class='cell $classe'>
