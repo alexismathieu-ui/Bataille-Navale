@@ -1,0 +1,101 @@
+body {
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.top-bar {
+    margin-bottom: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(10, 45px);
+    grid-gap: 4px;
+    justify-content: center; /* CENTRE LA GRILLE */
+    margin: 20px auto;
+}
+
+.cell {
+    width: 45px;
+    height: 45px;
+    background: #1d3557;
+    border: 1px solid #457b9d;
+    cursor: pointer;
+}
+
+.cell.boat {
+    background: #2a9d8f;
+}
+
+.bateaux-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 15px 0;
+}
+
+.bateau-select {
+    padding: 10px 15px;
+    background: #264653;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 2px solid transparent;
+}
+
+.bateau-select.active {
+    background: #2a9d8f;
+    border-color: #e9c46a;
+}
+
+.astuce {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.btn.quit {
+    background: #e63946;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.btn.validate {
+    margin-top: 20px;
+    background: #2a9d8f;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+}
+
+.cell.placed {
+    background-color: #4caf50; /* vert joli */
+    border-color: #2e7d32;
+}
+
+.bateau-select.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    text-decoration: line-through;
+}
+
+/* Case prévisualisée */
+.cell.preview-ok {
+    background-color: rgba(0, 150, 255, 0.4);
+}
+
+/* Case prévisualisée mais placement impossible */
+.cell.preview-bad {
+    background-color: rgba(255, 0, 0, 0.4);
+}
+
+.preview-ok {
+    background-color: rgba(0, 255, 0, 0.4);
+}
+
+.preview-bad {
+    background-color: rgba(255, 0, 0, 0.4);
+}
